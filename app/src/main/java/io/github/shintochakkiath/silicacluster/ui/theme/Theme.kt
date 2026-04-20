@@ -20,49 +20,30 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val HackerDarkColorScheme = darkColorScheme(
-    primary = NeonCyan,
-    secondary = CyberPurple,
-    tertiary = MatrixGreen,
+private val MonochromeColorScheme = darkColorScheme(
+    primary = Color.White,
+    secondary = Color.White,
+    tertiary = Color.White,
     background = ObsidianBg,
     surface = ObsidianSurface,
     onPrimary = Color.Black,
-    onSecondary = Color.White,
+    onSecondary = Color.Black,
     onTertiary = Color.Black,
     onBackground = TextPrimary,
     onSurface = TextPrimary,
-    error = AlertRed,
+    error = Color.White,
     outline = Color.White,
     surfaceVariant = ObsidianCard,
     onSurfaceVariant = TextSecondary
 )
 
-private val HackerLightColorScheme = lightColorScheme(
-    primary = SoftNeonCyan,
-    secondary = SoftCyberPurple,
-    tertiary = SoftMatrixGreen,
-    background = ObsidianLight,
-    surface = ObsidianLightSurface,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = LightTextPrimary,
-    onSurface = LightTextPrimary,
-    error = SoftAlertRed,
-    outline = Color.Black,
-    surfaceVariant = ObsidianLightCard,
-    onSurfaceVariant = LightTextSecondary
-)
-
 @Composable
 fun SilicaClusterTheme(
-    darkTheme: Boolean = false, // Light mode by default
+    darkTheme: Boolean = true, // Force Dark theme internally
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) HackerDarkColorScheme else HackerLightColorScheme
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = MonochromeColorScheme,
         typography = Typography,
         content = content
     )

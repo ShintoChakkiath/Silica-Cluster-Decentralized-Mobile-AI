@@ -61,6 +61,7 @@ class SilicaService : Service() {
                 val bridgeName = intent.getStringExtra("BRIDGE") ?: "Cloudflare_Free"
                 val isWorker = intent.getBooleanExtra("IS_WORKER", false)
                 val workerIp = intent.getStringExtra("WORKER_IP")
+                val isOffline = intent.getBooleanExtra("IS_OFFLINE", false)
                 val bridgeToken = intent.getStringExtra("BRIDGE_TOKEN") ?: ""
                 val threadCount = intent.getIntExtra("THREAD_COUNT", 4)
 
@@ -78,7 +79,7 @@ class SilicaService : Service() {
                 TelemetryServer.startServer(this)
 
                 // Start Bridge
-                if (!isWorker) {
+                if (!isWorker && !isOffline) {
                     serviceScope.launch {
                         val bridge = try { InternetBridge.valueOf(bridgeName) } catch(e: Exception) { InternetBridge.Cloudflare_Free }
                         binaryRunner.startBridge(bridge, 8081, bridgeToken)

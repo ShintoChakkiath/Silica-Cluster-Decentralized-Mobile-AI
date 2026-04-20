@@ -17,39 +17,39 @@ package io.github.shintochakkiath.silicacluster.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Obsidian Base
-val ObsidianBg = Color(0xFF0F0F12)
-val ObsidianSurface = Color(0xFF16161D)
-val ObsidianCard = Color(0xFF1C1C26)
+val ObsidianBg = Color(0xFF000000) // Pure black background
+val ObsidianSurface = Color(0xFF080808) // Very dark for surface
+val ObsidianCard = Color(0xFF141414) // Different black for boxes/cards
 
-// Neons & Accents
-val NeonCyan = Color(0xFF00F5FF)
-val CyberPurple = Color(0xFFBC13FE)
-val MatrixGreen = Color(0xFF39FF14)
-val AlertRed = Color(0xFFFF3131)
-val SoftAlertRed = Color(0xFFC62828) // Deep Red 800
+// Neons & Accents -> All mapped to White
+val NeonCyan = Color(0xFFFFFFFF)
+val CyberPurple = Color(0xFFFFFFFF)
+val MatrixGreen = Color(0xFFFFFFFF)
+val AlertRed = Color(0xFFFFFFFF)
+val SoftAlertRed = Color(0xFFFFFFFF)
 
-// Soft Accents (Light Mode)
-val SoftNeonCyan = Color(0xFF00B8D4)
-val SoftMatrixGreen = Color(0xFF2E7D32)
-val SoftCyberPurple = Color(0xFF8E24AA)
+// Soft Accents (Light Mode) -> Mapped to White
+val SoftNeonCyan = Color(0xFFFFFFFF)
+val SoftMatrixGreen = Color(0xFFFFFFFF)
+val SoftCyberPurple = Color(0xFFFFFFFF)
 
 // Legacy / Support
-val ObsidianLight = Color(0xFFF8F9FA)
-val ObsidianLightSurface = Color(0xFFFFFFFF)
-val ObsidianLightCard = Color(0xFFF1F3F4)
+val ObsidianLight = Color(0xFF000000)
+val ObsidianLightSurface = Color(0xFF080808)
+val ObsidianLightCard = Color(0xFF141414)
 
 // Text
 // Text (Dark Mode)
-val TextPrimary = Color(0xFFF0F0F5)
-val TextSecondary = Color(0xFF9EA4B0)
-val TextMuted = Color(0xFF626274)
+val TextPrimary = Color(0xFFFFFFFF)
+val TextSecondary = Color(0xFFB3B3B3) // Light grey
+val TextMuted = Color(0xFF808080)
 
 // Text (Light Mode)
-val LightTextPrimary = Color(0xFF1A1C1E)
-val LightTextSecondary = Color(0xFF44474E)
-val LightTextMuted = Color(0xFF74777F)
+val LightTextPrimary = Color(0xFFFFFFFF)
+val LightTextSecondary = Color(0xFFB3B3B3)
+val LightTextMuted = Color(0xFF808080)
 
 // Standard Purples (keeping for compat if needed, but we'll use our own)
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+val Purple80 = Color(0xFFFFFFFF)
+val PurpleGrey80 = Color(0xFFCCCCCC)
+val Pink80 = Color(0xFFFFFFFF)

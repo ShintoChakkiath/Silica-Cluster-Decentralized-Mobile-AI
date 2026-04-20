@@ -97,6 +97,12 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.PublicOff
 
 // ----------------------------------------------------------------------------
 // HIGH-END UI COMPONENTS (HACKER STYLE)
@@ -176,79 +182,168 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val scope = rememberCoroutineScope()
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+                
+                val context = LocalContext.current
+                LaunchedEffect(Unit) {
+                    ChatRepository.initialize(context)
+                }
 
-                        // Global App State
+                // Global App State
                 var selectedModel by remember { mutableStateOf<LLMModel?>(null) }
                 var selectedBridge by remember { mutableStateOf(InternetBridge.Cloudflare_Free) }
                 var isWorkerMode by remember { mutableStateOf(false) }
                 var isServerRunning by remember { mutableStateOf(false) }
+                var isOfflineMode by remember { mutableStateOf(false) }
+                var isRealTimeAccess by remember { mutableStateOf(true) }
+                var isThisDeviceOnly by remember { mutableStateOf(false) }
+                
+                val bridgeUrlGlobal by BridgeStateManager.currentBridgeUrl.collectAsState()
+                var userApiHost by remember { mutableStateOf("") }
+                var userApiKey by remember { mutableStateOf(ApiKeyManager.activeKey.value?.key ?: "") }
+                
+                LaunchedEffect(bridgeUrlGlobal) {
+                    if (!bridgeUrlGlobal.isNullOrBlank() && bridgeUrlGlobal != "Initializing Tunnel...") {
+                        userApiHost = bridgeUrlGlobal!!
+                    }
+                }
+                LaunchedEffect(ApiKeyManager.activeKey.value) {
+                    val k = ApiKeyManager.activeKey.value?.key
+                    if (k != null && k.isNotBlank()) userApiKey = k
+                }
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = MaterialTheme.colorScheme.background,
-                    topBar = {
-                        TopAppBar(
-                            title = { Text("SILICA CLUSTER", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black) },
-                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                            actions = {
-                                // Theme Toggle moved to TopBar for safety
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 16.dp)) {
-                                    Icon(if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    Spacer(Modifier.width(8.dp))
-                                    Switch(checked = isDarkMode, onCheckedChange = { isDarkMode = it })
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    gesturesEnabled = true,
+                    drawerContent = {
+                        ModalDrawerSheet(modifier = Modifier.fillMaxWidth(0.85f)) {
+                            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                                Text("SILICA CLUSTER", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, modifier = Modifier.padding(16.dp))
+                                HorizontalDivider()
+                                
+                                val chats by ChatRepository.sessions.collectAsState()
+                                val activeSessionId by ChatRepository.activeSessionId.collectAsState()
+                                val visibleChats = chats.filter { it.messages.isNotEmpty() }
+                                var chatLimit by remember { mutableIntStateOf(5) }
+                                
+                                Text("Previous Chats", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(16.dp))
+                                visibleChats.take(chatLimit).forEach { chat ->
+                                    NavigationDrawerItem(
+                                        label = { Text(chat.title, maxLines = 1) },
+                                        selected = activeSessionId == chat.id,
+                                        onClick = { 
+                                            ChatRepository.setActiveSession(chat.id)
+                                            navController.navigate("chat") { launchSingleTop = true }
+                                            scope.launch { drawerState.close() }
+                                        },
+                                        icon = { Icon(Icons.Default.History, null) },
+                                        badge = {
+                                            Row {
+                                                IconButton(onClick = { ChatRepository.togglePinSession(context, chat.id) }, modifier = Modifier.size(24.dp)) {
+                                                    Icon(if(chat.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin, contentDescription = "Pin", modifier = Modifier.size(16.dp))
+                                                }
+                                                IconButton(onClick = { ChatRepository.deleteSession(context, chat.id) }, modifier = Modifier.size(24.dp)) {
+                                                    Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+                                        }
+                                    )
                                 }
+                                if (visibleChats.size > chatLimit) {
+                                    TextButton(onClick = { chatLimit += 5 }, modifier = Modifier.padding(horizontal = 16.dp)) {
+                                        Text("View More")
+                                    }
+                                }
+                                
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                
+                                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                                val currentRoute = navBackStackEntry?.destination?.route
+                                
+                                NavigationDrawerItem(
+                                    label = { Text("Command Center") },
+                                    selected = currentRoute == "home",
+                                    onClick = { navController.navigate("home") { launchSingleTop = true }; scope.launch { drawerState.close() } },
+                                    icon = { Icon(Icons.Default.Hub, null) },
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                                NavigationDrawerItem(
+                                    label = { Text("Cluster Map") },
+                                    selected = currentRoute == "distributed",
+                                    onClick = { navController.navigate("distributed") { launchSingleTop = true }; scope.launch { drawerState.close() } },
+                                    icon = { Icon(Icons.Default.Dns, null) },
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                                NavigationDrawerItem(
+                                    label = { Text("LLM Models") },
+                                    selected = currentRoute == "downloads",
+                                    onClick = { navController.navigate("downloads") { launchSingleTop = true }; scope.launch { drawerState.close() } },
+                                    icon = { Icon(Icons.Default.CloudDownload, null) },
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                                
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                
+                                NavigationDrawerItem(
+                                    label = { Text("Settings") },
+                                    selected = currentRoute == "settings",
+                                    onClick = { navController.navigate("settings") { launchSingleTop = true }; scope.launch { drawerState.close() } },
+                                    icon = { Icon(Icons.Default.Settings, null) },
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
                             }
-                        )
-                    },
-                    bottomBar = {
-                        NavigationBar(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.primary,
-                            tonalElevation = 8.dp
-                        ) {
-                            val navBackStackEntry by navController.currentBackStackEntryAsState()
-                            val currentRoute = navBackStackEntry?.destination?.route
-                            NavigationBarItem(
-                                icon = { 
-                                    Icon(
-                                        if (currentRoute == "home") Icons.Filled.Hub else Icons.Outlined.Hub, 
-                                        contentDescription = "Stats"
-                                    ) 
-                                },
-                                label = { Text("Command") },
-                                selected = currentRoute == "home",
-                                onClick = { navController.navigate("home") { launchSingleTop = true } }
-                            )
-                            NavigationBarItem(
-                                icon = { 
-                                    Icon(
-                                        if (currentRoute == "distributed") Icons.Filled.Dns else Icons.Outlined.Dns, 
-                                        contentDescription = "Cluster"
-                                    ) 
-                                },
-                                label = { Text("Cluster") },
-                                selected = currentRoute == "distributed",
-                                onClick = { navController.navigate("distributed") { launchSingleTop = true } }
-                            )
-                            NavigationBarItem(
-                                icon = { 
-                                    Icon(
-                                        if (currentRoute == "downloads") Icons.Filled.CloudDownload else Icons.Outlined.CloudDownload, 
-                                        contentDescription = "Models"
-                                    ) 
-                                },
-                                label = { Text("Models") },
-                                selected = currentRoute == "downloads",
-                                onClick = { navController.navigate("downloads") { launchSingleTop = true } }
-                            )
                         }
                     }
-                ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = "home",
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
+                ) {
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        containerColor = MaterialTheme.colorScheme.background,
+                        topBar = {
+                            TopAppBar(
+                                title = { Text("SILICA CLUSTER", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black) },
+                                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                                navigationIcon = {
+                                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                                    }
+                                },
+                                actions = {
+                                    IconButton(onClick = { 
+                                        ChatRepository.createNewChat(context)
+                                        navController.navigate("chat") { launchSingleTop = true }
+                                    }) {
+                                        Icon(Icons.Default.Add, "New Chat")
+                                    }
+                                }
+                            )
+                        }
+                    ) { innerPadding ->
+                        NavHost(
+                            navController = navController,
+                            startDestination = "chat",
+                            modifier = Modifier.padding(innerPadding)
+                        ) {
+                            composable("chat") {
+                                ChatScreen(
+                                    currentBridgeUrl = if (isOfflineMode || isThisDeviceOnly) "http://127.0.0.1:8081" else userApiHost,
+                                    activeApiKey = userApiKey,
+                                    selectedModel = selectedModel?.name,
+                                    isRealTimeAccess = if (isOfflineMode) false else isRealTimeAccess,
+                                    isServerRunning = isServerRunning,
+                                    onNavigateToDownloads = { navController.navigate("downloads") { launchSingleTop = true } },
+                                    onStartEngine = { modelName ->
+                                        val model = ModelDirectory.getModels(context).find { it.name == modelName }
+                                        if (model != null) {
+                                            selectedModel = model
+                                            startSilicaServer(model, selectedBridge, isWorkerMode, "", isOfflineMode || isThisDeviceOnly)
+                                            isServerRunning = true
+                                        }
+                                    },
+                                    onStopEngine = {
+                                        stopSilicaServer()
+                                        isServerRunning = false
+                                    }
+                                )
+                            }
                         composable("home") {
                             SetupScreen(
                                 selectedModel = selectedModel,
@@ -256,11 +351,12 @@ class MainActivity : ComponentActivity() {
                                 selectedBridge = selectedBridge,
                                 onBridgeSelected = { selectedBridge = it },
                                 isWorkerMode = isWorkerMode,
+                                isOfflineMode = isOfflineMode,
                                 workerIp = "", // Dummy value
                                 isServerRunning = isServerRunning,
                                 onStartService = { model, bridge, workerMode, _ ->
                                     if (model != null || workerMode) {
-                                        startSilicaServer(model ?: ModelDirectory.getModels(applicationContext).first(), bridge, workerMode, "")
+                                        startSilicaServer(model ?: ModelDirectory.getModels(applicationContext).first(), bridge, workerMode, "", isOfflineMode)
                                         isServerRunning = true
                                     }
                                 },
@@ -277,7 +373,7 @@ class MainActivity : ComponentActivity() {
                                 isServerRunning = isServerRunning,
                                 onStartWorkerServer = {
                                     isWorkerMode = true
-                                    startSilicaServer(ModelDirectory.getModels(applicationContext).first(), InternetBridge.Cloudflare_Free, true, "")
+                                    startSilicaServer(ModelDirectory.getModels(applicationContext).first(), InternetBridge.Cloudflare_Free, true, "", isOfflineMode)
                                     isServerRunning = true
                                 },
                                 onStopWorkerServer = {
@@ -290,13 +386,28 @@ class MainActivity : ComponentActivity() {
                         composable("downloads") {
                             DownloadsScreen()
                         }
+                        composable("settings") {
+                            SettingsScreen(
+                                isOfflineMode = isOfflineMode,
+                                onOfflineModeChange = { isOfflineMode = it },
+                                isRealTimeAccess = isRealTimeAccess,
+                                onRealTimeAccessChange = { isRealTimeAccess = it },
+                                isThisDeviceOnly = isThisDeviceOnly,
+                                onThisDeviceOnlyChange = { isThisDeviceOnly = it },
+                                userApiHost = userApiHost,
+                                onUserApiHostChange = { userApiHost = it },
+                                userApiKey = userApiKey,
+                                onUserApiKeyChange = { userApiKey = it }
+                            )
+                        }
                     }
                 }
+                } // closes ModalNavigationDrawer
             }
         }
     }
 
-    private fun startSilicaServer(model: LLMModel, bridge: InternetBridge, isWorker: Boolean, workerIp: String) {
+    private fun startSilicaServer(model: LLMModel, bridge: InternetBridge, isWorker: Boolean, workerIp: String, isOffline: Boolean) {
         val intent = Intent(this, SilicaService::class.java).apply {
             action = "START"
             val safeDir = try {
@@ -309,6 +420,7 @@ class MainActivity : ComponentActivity() {
             putExtra("BRIDGE", bridge.name)
             putExtra("IS_WORKER", isWorker)
             putExtra("WORKER_IP", workerIp)
+            putExtra("IS_OFFLINE", isOffline)
             putExtra("BRIDGE_TOKEN", BridgeStateManager.bridgeToken.value)
             putExtra("THREAD_COUNT", BridgeStateManager.threadCount.value)
         }
@@ -339,6 +451,7 @@ fun SetupScreen(
     selectedBridge: InternetBridge,
     onBridgeSelected: (InternetBridge) -> Unit,
     isWorkerMode: Boolean,
+    isOfflineMode: Boolean,
     workerIp: String,
     isServerRunning: Boolean,
     onStartService: (LLMModel?, InternetBridge, Boolean, String) -> Unit,
@@ -391,6 +504,12 @@ fun SetupScreen(
             .padding(20.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp)) {
+            Icon(Icons.Default.Hub, contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(16.dp))
+            Text("COMMAND CENTER", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+        }
+
         // TELEMETRY GAUGES
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             GlassCard(modifier = Modifier.weight(1f)) {
@@ -460,7 +579,7 @@ fun SetupScreen(
             val engineCrashed by BridgeStateManager.engineCrashed.collectAsState()
             val engineCrashReason by BridgeStateManager.engineCrashReason.collectAsState()
             
-            val liveStatus by remember(bridgeUrlGlobal, bridgeLogsGlobal, isLlamaReady, activeNodes, engineCrashed, engineCrashReason) {
+            val liveStatus by remember(bridgeUrlGlobal, bridgeLogsGlobal, isLlamaReady, activeNodes, engineCrashed, engineCrashReason, isOfflineMode) {
                 derivedStateOf {
                     val logsString = bridgeLogsGlobal.takeLast(25).joinToString("\n")
                     when {
@@ -468,6 +587,7 @@ fun SetupScreen(
                             val cleanError = engineCrashReason?.take(47) ?: "ABNORMAL EXIT"
                             "🔴 CRASH: ${cleanError.uppercase()}"
                         }
+                        isOfflineMode -> "🟢 OFFLINE ENGINE READY"
                         isLlamaReady -> if (activeNodes.any { it.status == NodeStatus.ONLINE }) "🟢 SYSTEM ONLINE" else "🟢 SYSTEM ONLINE"
                         logsString.contains("load_model", ignoreCase = true) || 
                         logsString.contains("load_tensors", ignoreCase = true) ||
@@ -577,6 +697,91 @@ fun SetupScreen(
         if (showTerminal) ActivityTerminalSheet(onDismiss = { showTerminal = false })
     }
 }
+
+@Composable
+fun SettingsScreen(
+    isOfflineMode: Boolean,
+    onOfflineModeChange: (Boolean) -> Unit,
+    isRealTimeAccess: Boolean,
+    onRealTimeAccessChange: (Boolean) -> Unit,
+    isThisDeviceOnly: Boolean,
+    onThisDeviceOnlyChange: (Boolean) -> Unit,
+    userApiHost: String,
+    onUserApiHostChange: (String) -> Unit,
+    userApiKey: String,
+    onUserApiKeyChange: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp)) {
+            Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(16.dp))
+            Text("SETTINGS", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+        }
+
+        GlassCard(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Text("NETWORK CONFIGURATION", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 12.dp))
+            
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if (isOfflineMode) Icons.Default.WifiOff else Icons.Default.Wifi, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(16.dp))
+                    Text("Offline Mode", modifier = Modifier.weight(1f))
+                    Switch(checked = isOfflineMode, onCheckedChange = onOfflineModeChange)
+                }
+                Text("If offline mode is turned on there will be no real time data access from internet, and can be used without any data, if there are nodes connected to this master device over lan you will still have access to the pooled computation power.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 4.dp))
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if (isRealTimeAccess) Icons.Default.Public else Icons.Default.PublicOff, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(16.dp))
+                    Text("Real-Time Access", modifier = Modifier.weight(1f))
+                    Switch(checked = isRealTimeAccess, onCheckedChange = onRealTimeAccessChange)
+                }
+                Text("If this is turned off then the server does not look for live data from internet, it will only use the training data used for the LLM.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 4.dp))
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(16.dp))
+                    Text("This Device Only", modifier = Modifier.weight(1f))
+                    Switch(checked = isThisDeviceOnly, onCheckedChange = onThisDeviceOnlyChange)
+                }
+                Text("If this turned on, you will not have an API host and the conversation you have with the LLM will be directly passed into your phone's computation pool.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+        
+        GlassCard(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Text("EXTERNAL API BRIDGE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 12.dp))
+            
+            OutlinedTextField(
+                value = userApiHost,
+                onValueChange = onUserApiHostChange,
+                label = { Text("API Host") },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = userApiKey,
+                onValueChange = onUserApiKeyChange,
+                label = { Text("API Key") },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                singleLine = true
+            )
+        }
+    }
+}
+
 
 // ----------------------------------------------------
 // UI COMPONENTS
@@ -1417,7 +1622,7 @@ fun BridgeDropdown(selectedBridge: InternetBridge, onBridgeSelected: (InternetBr
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (BridgeStateManager.bridgeToken.collectAsState().value.isNotBlank()) {
-                    Text("✅ Token Configured", color = androidx.compose.ui.graphics.Color(0xFF4CAF50), fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    Text("✅ Token Configured", color = Color.White, fontSize = 14.sp, modifier = Modifier.weight(1f))
                     Button(onClick = { showTokenConfigDialog = true }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)) {
                         Text("Edit Config")
                     }
