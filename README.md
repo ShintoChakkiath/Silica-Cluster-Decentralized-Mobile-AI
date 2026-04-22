@@ -204,4 +204,16 @@ o	Requirement: Always use active cooling (a fan) if running a cluster node for m
 •	Web Scraping Footprint: When using the real-time search/RSS feature, your IP address is exposed to every site the app scrapes (DuckDuckGo, Wikipedia, etc.). To the website, it looks like a bot is visiting from your home IP. Kindly configure in the settings if you prefer to avoid certain sites or to add websites of your choice.
 •	Local Data Persistence: The app stores chat history in a local JSON file. If your phone is stolen and not encrypted, your entire conversation history is accessible to the thief.
 
+Screenshots
+
+
+<img src = "/Screenshot_2026-04-22-16-51-47-199_io.github.shintochakkiath.silicacluster.jpg" width = "250" >
+<img src = "/Screenshot_2026-04-22-16-52-00-977_io.github.shintochakkiath.silicacluster.jpg" width = "250" >
+<img src = "/Screenshot_2026-04-22-16-52-08-737_io.github.shintochakkiath.silicacluster.jpg" width = "250" >
+<img src = "/Screenshot_2026-04-22-16-52-18-494_io.github.shintochakkiath.silicacluster.jpg" width = "250" >
+<img src = "/Screenshot_2026-04-22-16-52-26-620_io.github.shintochakkiath.silicacluster.jpg" width = "250" >
+<img src = "/Screenshot_2026-04-22-16-52-36-997_io.github.shintochakkiath.silicacluster.jpg" width = "250" >
+<img src = "/Screenshot_2026-04-22-16-53-08-133_io.github.shintochakkiath.silicacluster.jpg" width = "250" >
+
+
 
